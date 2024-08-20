@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -15,95 +13,43 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { User, FolderOpen, Save } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import NewFlashCards from "@/components/flash-cards/newflashcards";
+import Link from "next/link";
 
-interface Flashcard {
+export interface Flashcard {
   id?: string;
   question: string;
   correctAnswer: string;
   answers: string[];
   difficulty: string;
   options: string[];
-  context?: string;
   topic: string;
-  category: string;
 }
 
 const FlashCards = () => {
   const { isLoaded, isSignedIn, user } = useUser();
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
-  const [flipped, setFlipped] = useState<Record<string, boolean>>({});
-  const [selectedAnswers, setSelectedAnswers] = useState<
-    Record<number, string | null>
-  >({});
-  const [feedback, setFeedback] = useState<Record<number, string>>({});
-  const [text, setText] = useState("");
   const [name, setName] = useState("");
   const [open, setOpen] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
-  const [showCorrectAnswer, setShowCorrectAnswer] = useState<
-    Record<string, boolean>
-  >({});
+  const [savedSets, setSavedSets] = useState<any[]>([]);
+  const [viewSavedCards, setViewSavedCards] = useState(false);
 
-  const router = useRouter();
-  
-  const handleOpen = () => {
-    setOpen(true);
-  };
-
-  const handleAnswerSelection = (cardId: string, selectedAnswer: string) => {
-    if (
-      flashcards.some(
-        (card) => card.id === cardId && card.correctAnswer === selectedAnswer
-      )
-    ) {
-      // Correct answer selected
-      setSelectedAnswers((prev) => ({ ...prev, [cardId]: selectedAnswer }));
-      setShowCorrectAnswer((prev) => ({ ...prev, [cardId]: false }));
-    } else {
-      // Wrong answer selected
-      setSelectedAnswers((prev) => ({ ...prev, [cardId]: selectedAnswer }));
-      setShowCorrectAnswer((prev) => ({ ...prev, [cardId]: true }));
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      fetchSavedSets();
     }
-  };
+  }, [isLoaded, isSignedIn]);
 
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  const handleGenerateFlashcards = async () => {
-    if (!text) {
-      alert("Please enter some text to generate flashcards");
-      return;
-    }
-
-    setIsGenerating(true);
+  const fetchSavedSets = async () => {
     try {
-      const response = await axios.post("/api/generate-flashcards", { text });
-      const generatedFlashcards = JSON.parse(response.data);
-      console.log("generated flash cards", generatedFlashcards);
-
-      setFlashcards((prevFlashcards) => [
-        ...prevFlashcards,
-        ...generatedFlashcards,
-      ]);
+      const response = await axios.get("/api/flashcards");
+      setSavedSets(response.data);
     } catch (error) {
-      alert("An error occurred while generating flashcards. Please try again.");
-    } finally {
-      setIsGenerating(false);
+      console.error("Error fetching saved sets:", error);
     }
-  };
-
-  const retryQuestion = (cardId: string) => {
-    setSelectedAnswers((prev) => ({ ...prev, [cardId]: "" }));
-    setShowCorrectAnswer((prev) => ({ ...prev, [cardId]: false }));
-  };
-
-  const handleCardFlipped = (index: number) => {
-    setFlipped((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
   };
 
   const saveFlashCards = async () => {
@@ -118,15 +64,12 @@ const FlashCards = () => {
         flashcards,
         userId: user?.id,
       });
-      handleClose();
+      setOpen(false);
+      fetchSavedSets();
     } catch (error) {
       console.error("Error saving flashcards:", error);
       alert("An error occurred while saving flashcards. Please try again.");
     }
-  };
-
-  const handleEditCard = (card: Flashcard) => {
-    setEditingCard(card);
   };
 
   const handleUpdateCard = async (updatedCard: Flashcard) => {
@@ -146,102 +89,110 @@ const FlashCards = () => {
     }
   };
 
+  console.log(flashcards)
+
   if (!isLoaded || !isSignedIn) {
     return <div>Please sign in to use this feature.</div>;
   }
 
-  console.log("flashcards", flashcards);
   return (
-    <div className='container mx-auto p-4'>
-      <h1 className='text-2xl font-bold mb-4'>AI-Powered Flashcards</h1>
-      <Textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder='Enter your text here to generate flashcards...'
-        className='mb-4'
-      />
-      <Button onClick={handleGenerateFlashcards} disabled={isGenerating}>
-        {isGenerating ? "Generating..." : "Generate Flashcard"}
-      </Button>
+    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 min-h-screen">
+      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+          <h1><Link href={'/'} className="text-xl font-bold text-white">AI-Powered Flashcards</Link></h1>
+          <div className="flex items-center space-x-4">
+            <User className="h-8 w-8 text-white" />
+            <span className="text-white">{user?.fullName || "User"}</span>
+          </div>
+        </div>
+      </header>
 
-      <div className='mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-          {flashcards.map((card: any, index) => (
-            <Card key={card.id || index} className='cursor-pointer'>
-              <CardHeader>
-                <CardTitle>{card.topic}</CardTitle>
-              </CardHeader>
-              <CardContent className='p-4'>
-                <p>
-                  <strong>Question:</strong> {card.question}
-                </p>
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex flex-wrap gap-3 justify-between mb-8">
+          <Button
+            onClick={() => setViewSavedCards(false)}
+            className={`${
+              !viewSavedCards ? "bg-indigo-500 text-white" : "bg-white text-indigo-500"
+            } hover:bg-indigo-600 hover:text-white transition-colors duration-300`}
+          >
+            Create Flashcards
+          </Button>
+          <Button
+            onClick={() => setViewSavedCards(true)}
+            className={`${
+              viewSavedCards ? "bg-purple-500 text-white" : "bg-white text-purple-500"
+            } hover:bg-purple-600 hover:text-white transition-colors duration-300`}
+          >
+            <FolderOpen className="mr-2 h-4 w-4" /> View Saved Flashcards
+          </Button>
+        </div>
 
-                {showCorrectAnswer[card.id || index] && (
-                  <p className='text-green-500'>
-                    <strong>Correct Answer:</strong> {card.correctAnswer}
-                  </p>
-                )}
+        {viewSavedCards ? (
+          <div>
+            <h2 className="text-2xl font-bold mb-6 text-indigo-700">Your Saved Flashcard Sets</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {savedSets.map((set) => (
+                <Card
+                  key={set.id}
+                  className="hover:shadow-xl transition-shadow duration-300 border-t-4 border-indigo-500 bg-white"
+                >
+                  <CardHeader className="bg-indigo-50">
+                    <CardTitle className="text-lg text-indigo-700">{set.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <p className="text-gray-600">Flashcards: {set.flashcards.length}</p>
+                    <Button
+                      size="sm"
+                      className="mt-4 bg-indigo-500 text-white hover:bg-indigo-600 transition-colors duration-300"
+                      onClick={() => setFlashcards(set.flashcards)}
+                    >
+                      Load Flashcards
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ) : (
+        <NewFlashCards flashcards={flashcards} setFlashcards={setFlashcards} setEditingCard={setEditingCard} />
+        )}
 
-                <div className='mt-4'>
-                  {card.answers.map((answer: string, i: any) => (
-                    <label key={i} className='block mb-2'>
-                      <input
-                        type='radio'
-                        name={`answer-${card.id || index}`}
-                        value={answer}
-                        checked={selectedAnswers[card.id || index] === answer}
-                        onChange={() =>
-                          handleAnswerSelection(card.id || index, answer)
-                        }
-                        className='mr-2'
-                      />
-                      {answer}
-                    </label>
-                  ))}
-                </div>
-
-                {selectedAnswers[card.id || index] &&
-                  selectedAnswers[card.id || index] !== card.correctAnswer && (
-                    <div className='mt-4 text-red-500'>
-                      <p>Incorrect! Please try again.</p>
-                      <Button
-                        onClick={() => retryQuestion(card.id || index)}
-                        className='mt-2'
-                      >
-                        Retry
-                      </Button>
-                    </div>
-                  )}
-              </CardContent>
-            </Card>
-          ))}
-      </div>
-
-      {flashcards.length > 0 && (
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className='mt-4'>Save Flashcards</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Save Your Flashcards</DialogTitle>
-            </DialogHeader>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder='Enter a name for this set of flashcards'
-              className='mb-4'
-            />
-            <Button onClick={saveFlashCards}>Save</Button>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {editingCard && (
+        {/* Save Flashcards Dialog */}
+        {flashcards.length > 0 && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="mt-8 fixed bottom-8 right-8 shadow-lg bg-purple-500 text-white hover:bg-purple-600 transition-colors duration-300">
+                <Save className="mr-2 h-4 w-4" /> Save Flashcards
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-white">
+              <DialogHeader>
+                <DialogTitle className="text-indigo-700">
+                  Save Your Flashcards
+                </DialogTitle>
+              </DialogHeader>
+              <Textarea
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter a name for this set of flashcards"
+                className="mb-4 border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <Button
+                onClick={saveFlashCards}
+                className="bg-indigo-500 text-white hover:bg-indigo-600 transition-colors duration-300"
+              >
+                Save
+              </Button>
+            </DialogContent>
+          </Dialog>
+        )}
+        {editingCard && (
         <Dialog open={!!editingCard} onOpenChange={() => setEditingCard(null)}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Flashcard</DialogTitle>
             </DialogHeader>
+            <h3>Question</h3>
             <Textarea
               value={editingCard.question}
               onChange={(e) =>
@@ -250,6 +201,22 @@ const FlashCards = () => {
               placeholder='Question'
               className='mb-2'
             />
+            {/* options as seperate fields */}
+            <h3>Options</h3>
+            {editingCard.options.map((option, i) => (
+              <Input
+                key={i}
+                value={option}
+                onChange={(e) => {
+                  const newOptions = [...editingCard.options];
+                  newOptions[i] = e.target.value;
+                  setEditingCard({ ...editingCard, options: newOptions });
+                }}
+                placeholder='Option'
+                className='mb-1'
+              />
+            ))}
+            <h3>Correct Answer</h3>
             <Textarea
               value={editingCard.correctAnswer}
               onChange={(e) =>
@@ -261,6 +228,7 @@ const FlashCards = () => {
               placeholder='Answer'
               className='mb-2'
             />
+            <h3>Difficulty</h3>
             <Input
               value={editingCard.difficulty}
               onChange={(e) =>
@@ -275,6 +243,7 @@ const FlashCards = () => {
           </DialogContent>
         </Dialog>
       )}
+      </main>
     </div>
   );
 };

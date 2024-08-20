@@ -10,21 +10,20 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  const styles = {
-    backgroundImage: `url(${LoginImage})`,
-    backgroundSize: "cover",
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "center",
-  };
-
   return (
     <>
-      <div className='container relative h-[800px] flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0'>
+      <div className='container relative h-[800px] items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0'>
         <div
-          style={styles}
           className='relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex'
         >
-          <div className='absolute inset-0 bg-zinc-900' />
+          <Image 
+            src={LoginImage} 
+            layout="fill" 
+            objectFit="cover" 
+            alt="Login background" 
+            priority
+          />
+          <div className='absolute inset-0 bg-zinc-900 bg-opacity-50' />
           <div className='relative z-20 flex items-center text-lg font-medium'>
             <svg
               xmlns='http://www.w3.org/2000/svg'
