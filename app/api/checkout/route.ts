@@ -24,7 +24,7 @@ export async function POST(req: NextApiRequest, res: NextResponse) {
             product_data: {
               name: "Pro Subscription",
             },
-            unit_amount: formatAmountForStripe(10),
+            unit_amount: formatAmountForStripe(amount),
             recurring: {
               interval: "month",
               interval_count: 1,
