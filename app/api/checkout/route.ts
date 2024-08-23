@@ -1,4 +1,3 @@
-import { NextApiRequest } from "next";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
@@ -10,8 +9,8 @@ const formatAmountForStripe = (amount: number) => {
 
 const CURRENCY = "usd";
 
-export async function POST(req: NextApiRequest, res: NextResponse) {
-  const { amount } = req.body; // the amount is to be passed into the formatAmountForStripe function
+export async function POST(req: Request, res: NextResponse) {
+  const { amount } = await req.json();
 
   try {
     const params: Stripe.Checkout.SessionCreateParams = {
@@ -33,8 +32,8 @@ export async function POST(req: NextApiRequest, res: NextResponse) {
           quantity: 1,
         },
       ],
-      success_url: `${req.headers.origin}/result?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.origin}/result?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${req.headers}/result?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers}/result?session_id={CHECKOUT_SESSION_ID}`,
     };
 
     const checkoutSession: Stripe.Checkout.Session =
