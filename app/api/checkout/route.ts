@@ -10,7 +10,7 @@ const formatAmountForStripe = (amount: number) => {
 
 const CURRENCY = "usd";
 
-export default async function POST(req: NextApiRequest, res: NextResponse) {
+export async function POST(req: NextApiRequest, res: NextResponse) {
   const { amount } = req.body; // the amount is to be passed into the formatAmountForStripe function
 
   try {
