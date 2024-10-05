@@ -21,6 +21,7 @@ This AI-powered flashcard application leverages cutting-edge natural language pr
 - [Supabase](https://supabase.io/)
 - [shadcn UI](https://ui.shadcn.com/)
 - [Google Gemini AI](https://deepmind.google/technologies/gemini/pro/)
+- Langchain
 
 ## Getting Started
 
